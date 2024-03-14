@@ -101,7 +101,7 @@ public class ExtendInterceptor implements Interceptor {
             SelectOption selectOption = getOption(args, 1);
             int threshold=(selectOption == null || selectOption.getForeignColumnThreshold()==null)?
                     foreignColumnThreshold : selectOption.getForeignColumnThreshold();
-            if ( list!=null && (threshold==-1 || threshold<=list.size())) {
+            if ( list!=null && (threshold==-1 || list.size()<=threshold)) {
                 setForeignColumns(list);
             }
             return list;
@@ -142,19 +142,25 @@ public class ExtendInterceptor implements Interceptor {
         Map<Class, Map> foreignMaps = new HashMap<>();
         boolean find=false;
         for (PropertyDescriptor pd : propertyDescriptors) {
+
+            //find @ForeignColumn
             ForeignColumn foreignColumn = ObjectSupport.getAnnotation(ForeignColumn.class, clazz, pd);
             if (foreignColumn == null || StringUtils.isBlank(foreignColumn.keyProp())
                     || foreignColumn.foreignClass() == null || StringUtils.isBlank(foreignColumn.foreignExp())) continue;
             find=true;
+
             Class foreignClass = foreignColumn.foreignClass();
             String exp = foreignColumn.foreignExp();
+            //<id,foreignObject>
             Map foreignMap = foreignMaps.get(foreignClass);
+
             if (foreignMap == null) {
-                //获取非空的ids
+                //获取非空的外部ids for sql: in( 1,2...)
                 List<Object> ids = list.stream().map(e -> ObjectSupport.getProperty(e, foreignColumn.keyProp()))
                         .filter(id -> id != null).collect(Collectors.toList());
+
                 if (CollectionUtils.isEmpty(ids)) {
-                    foreignMap = new HashMap();
+                    foreignMap = new HashMap();  //cache empty
                 }
                 //存在ids则去查询外键表,并放入Map
                 else {
@@ -172,6 +178,7 @@ public class ExtendInterceptor implements Interceptor {
                         foreignMap = getFromMethodInvoke( foreignClass, exp, foreignColumn.foreignExpType(),ids);
                     }
                 }
+
                 foreignMaps.put(foreignClass, foreignMap);
 
             }
@@ -179,12 +186,16 @@ public class ExtendInterceptor implements Interceptor {
 
             //设置字段值
             for (Object r : list) {
-                pd.getWriteMethod().invoke(r, foreignMap.get(foreignColumn.foreignExp()));
+                Object foreignId = ObjectSupport.getProperty(r, foreignColumn.keyProp());
+                if(foreignId==null) continue;
+                Object foreignObject = foreignMap.get(foreignId);
+                if(foreignObject==null) continue;;
+                pd.getWriteMethod().invoke(r,  ObjectSupport.getProperty(foreignObject,foreignColumn.foreignExp()));
 
             }
 
         }
-        if(!find){
+        if(!find){ //cache
             ignoreForeignClassSet.add(clazz);
         }
 

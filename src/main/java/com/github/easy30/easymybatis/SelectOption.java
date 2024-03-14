@@ -27,7 +27,12 @@ public class SelectOption extends MapperOption  {
         return this;
     }
 
-    public SelectOption ignoreForeignColumn(Integer foreignColumnThreshold){
+    /**
+     * set -1 means no limit.
+     * @param foreignColumnThreshold
+     * @return
+     */
+    public SelectOption foreignColumnThreshold(Integer foreignColumnThreshold){
         this.foreignColumnThreshold=foreignColumnThreshold;
         return this;
     }
