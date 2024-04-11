@@ -48,7 +48,7 @@ public interface Mapper<E,R> {
     @UpdateProvider(type = Provider.class, method = "updateByParams")
     int updateByParams(@Param(Const.ENTITY) E entity,
                        @Param(Const.PARAMS) Object params,
-                       @Param(Const.PARAM_NAEMS) String paramNames,
+                       @Param(Const.PARAM_NAMES) String paramNames,
                        @Param(Const.OPTIONS) UpdateOption... options);
 
 
@@ -80,7 +80,7 @@ public interface Mapper<E,R> {
      * @return
      */
     @DeleteProvider(type = Provider.class, method = "deleteByParams")
-    int deleteByParams(@Param(Const.PARAMS) Object params,@Param(Const.PARAM_NAEMS) String paramNames,@Param(Const.OPTIONS) DeleteOption... options);
+    int deleteByParams(@Param(Const.PARAMS) Object params, @Param(Const.PARAM_NAMES) String paramNames, @Param(Const.OPTIONS) DeleteOption... options);
 
     /**
      *

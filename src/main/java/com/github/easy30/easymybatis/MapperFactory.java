@@ -1,39 +1,41 @@
 package com.github.easy30.easymybatis;
 
 import com.github.easy30.easymybatis.annotation.EntitySelectKey;
-import com.github.easy30.easymybatis.core.*;
-
+import com.github.easy30.easymybatis.core.ColumnAnnotation;
+import com.github.easy30.easymybatis.core.DefaultInterceptor;
 import com.github.easy30.easymybatis.core.DialectFactory;
+import com.github.easy30.easymybatis.core.EntityAnnotation;
 import com.github.easy30.easymybatis.dialect.Dialect;
 import com.github.easy30.easymybatis.utils.ObjectSupport;
 import com.github.easy30.easymybatis.utils.Utils;
-
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.annotations.SelectKey;
-import org.apache.ibatis.builder.MapperBuilderAssistant;
 import org.apache.ibatis.builder.annotation.MapperAnnotationBuilder;
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
 import org.apache.ibatis.executor.keygen.KeyGenerator;
 import org.apache.ibatis.executor.keygen.SelectKeyGenerator;
-import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.SqlCommandType;
-import org.apache.ibatis.mapping.StatementType;
+import org.apache.ibatis.mapping.*;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.SqlSessionTemplate;
 import org.mybatis.spring.support.SqlSessionDaoSupport;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.util.CollectionUtils;
 
+import javax.persistence.Column;
+import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * coolma 2019/10/25
@@ -58,6 +60,7 @@ public class MapperFactory implements BeanPostProcessor, InitializingBean, Appli
     private Map<String,Generation> generations=new ConcurrentHashMap<>();
 
     private boolean inited=false;
+    private Map<Class,ResultMap> changeResultMapMap =Collections.synchronizedMap(new HashMap());
     public MapperFactory() {
 
     }
@@ -180,6 +183,9 @@ public class MapperFactory implements BeanPostProcessor, InitializingBean, Appli
                 if (ms.getSqlCommandType().equals(SqlCommandType.INSERT)) {
                     doKeyGenerator(mapperClass, entityClass, method, ms);
 
+                }else  if (ms.getSqlCommandType().equals(SqlCommandType.SELECT)) {
+                    changeResultMaps(ms);
+
                 }
 
             }
@@ -187,6 +193,64 @@ public class MapperFactory implements BeanPostProcessor, InitializingBean, Appli
 
         }
     }
+
+    /**
+     * find @Column(name="ccc"), build prop and column name mapping;
+     * @param ms
+     */
+    private void changeResultMaps(MappedStatement ms) {
+        List<ResultMap> resultMaps = ms.getResultMaps();
+        if (CollectionUtils.isEmpty(resultMaps)) return;
+        List<ResultMap> newResultMaps = new ArrayList<>();
+        boolean change = false;
+        for (ResultMap resultMap : resultMaps) {
+            Class<?> resultClass = resultMap.getType();
+            ResultMap newResultMap = changeResultMapMap.get(resultClass);
+            if (newResultMap == null) {
+                List<ResultMapping> newResultMappings = getColumnResultMappings(resultClass);
+                if (newResultMappings.size() > 0) {
+                    //keep old ResultMapping . resultMap.getResultMappings() mostly  empty
+                    if (resultMap.getResultMappings() != null) {
+                        Set<String> propSet = newResultMappings.stream().map(ResultMapping::getProperty).collect(Collectors.toSet());
+                        for (ResultMapping oldResultMapping : resultMap.getResultMappings()) {
+                            if(!propSet.contains(oldResultMapping.getProperty())){
+                                newResultMappings.add(oldResultMapping);
+                            }
+                        }
+                    }
+
+                    ResultMap.Builder newResultMapBuilder = new ResultMap.Builder(configuration, resultMap.getId(), resultMap.getType(), newResultMappings, resultMap.getAutoMapping());
+                    newResultMap = newResultMapBuilder.build();
+                    changeResultMapMap.put(resultClass, newResultMap);
+
+                }
+            }
+            if (newResultMap == null) {
+                newResultMaps.add(resultMap);
+            } else {
+                change = true;
+                newResultMaps.add(newResultMap);
+            }
+        }
+        if (change) {
+            ObjectSupport.setField(ms, "resultMaps", newResultMaps);
+        }
+
+
+    }
+
+    private List<ResultMapping> getColumnResultMappings(Class<?> resultClass) {
+        PropertyDescriptor[] propertyDescriptors = BeanUtils.getPropertyDescriptors(resultClass);
+        List<ResultMapping> resultMappings = new ArrayList<ResultMapping>();
+        for (PropertyDescriptor pd : propertyDescriptors) {
+            Column column = ObjectSupport.getAnnotation(Column.class, resultClass, pd);
+            if (column == null || StringUtils.isBlank(column.name())) continue;
+            ResultMapping.Builder builder = new ResultMapping.Builder(configuration, pd.getName(), column.name(), pd.getPropertyType());
+            resultMappings.add(builder.build());
+        }
+        return resultMappings;
+    }
+
 
     private void doKeyGenerator(Class mapperClass, Class entityClass, Method method, MappedStatement ms) {
         log.debug("------ mapper:{},entity:{},method:{}",mapperClass,entityClass,method);

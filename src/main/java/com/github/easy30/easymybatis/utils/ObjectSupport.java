@@ -40,6 +40,39 @@ public class ObjectSupport {
 		
 	}
 
+	/**
+	 * set static field value
+	 * @param clazz
+	 * @param fieldName
+	 * @param value
+	 */
+	public static void setField(Class clazz, String fieldName, Object value){
+		Field field = ObjectSupport.getField(clazz, fieldName);
+		field.setAccessible(true);
+		try {
+			field.set(null,value);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * set instance field value
+	 * @param obj
+	 * @param fieldName
+	 * @param value
+	 */
+	public static void setField(Object obj, String fieldName, Object value){
+		if(obj==null) return;
+		Field field = ObjectSupport.getField(obj.getClass(), fieldName);
+		field.setAccessible(true);
+		try {
+			field.set(obj,value);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	private static boolean arrayIndexOf(String[] array, String s) {
 		if (array == null || array.length == 0)
 			return false;

@@ -26,7 +26,7 @@ public class ProviderSupport {
 
     //public static String SQL_SELECT_KEY = "<selectKey keyProperty='{}' resultType='{}' order='{}'>{}</selectKey>";
     @SneakyThrows
-    public static String sqlSetValues(String table, Object entity, EntityAnnotation entityAnnotation, String prefix, UpdateOption updateOption) {
+    public static String sqlSetValues(String table, Object entity, EntityAnnotation entityAnnotation, String prefix, UpdateOption updateOption,boolean updateById) {
         LineBuilder lb = new LineBuilder();
         if (prefix == null) prefix = "";
         if (prefix.length() > 0) prefix += ".";
@@ -44,6 +44,7 @@ public class ProviderSupport {
             if (!columnAnnotation.isUpdatable()) continue;
             if(columnAnnotation.isTransient()) continue;
             String prop = e.getKey();
+            if(updateById &&  entityAnnotation.getIdPropertyNames().contains(prop)) continue;//updateById, needn't update id;
 
             if (ignoreColumnSet != null && (ignoreColumnSet.contains(prop) || ignoreColumnSet.contains(columnAnnotation.getName()))) continue;
 
@@ -53,6 +54,7 @@ public class ProviderSupport {
             Object value = MapperOptionSupport.getAndRemove(extraColVals, prop, columnAnnotation.getName());
             if (value != null) {
                 valueType = 2;
+                value=ProviderSupport.convertSqlAddParamPrefix(value.toString(), Const.OPTIONS_PARAMS);
             }
 
 
@@ -113,14 +115,21 @@ public class ProviderSupport {
         //-- 剩下的
         if (extraColVals != null) {
             extraColVals.forEach((k, v) -> {
+                v=ProviderSupport.convertSqlAddParamPrefix(v, Const.OPTIONS_PARAMS);
                 lb.append(Utils.format(" {}={}, ", ProviderSupport.convertColumn(k, entityAnnotation), v));
             });
 
         }
 
         String result = lb.toString();
-        if (StringUtils.isEmpty(result))
+        if (StringUtils.isEmpty(result)) {
+           /* if(updateById){ //set one field "id = id", avoid Exception
+                String id0=entityAnnotation.getIdColumnNames().get(0);
+                result= id0+" = "+id0;
+            }
+            else */
             throw new MapperException("entity for update is empty. You need set some values");
+        }
         return result;
     }
 

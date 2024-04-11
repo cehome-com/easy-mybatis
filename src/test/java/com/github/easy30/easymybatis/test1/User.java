@@ -3,6 +3,8 @@ package com.github.easy30.easymybatis.test1;
 
 import com.github.easy30.easymybatis.annotation.ColumnDefault;
 import lombok.Data;
+
+import javax.persistence.Column;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import java.util.Date;
@@ -21,5 +23,8 @@ public class User {
 
     @ColumnDefault("now()")
     private Date updateTime;
+
+    @Column(name="nick_name")
+    private String nick;
 
 }

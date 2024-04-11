@@ -581,6 +581,11 @@ public class MapperTest {
         userMapper.inserts();
     }
 
+    @Test
+    public void select(){
+        System.out.println(JSON.toJSONString(userMapper.get(4L,null)));
+    }
+
    /* @Test
     public void listsql(){
         Map map=new HashMap();

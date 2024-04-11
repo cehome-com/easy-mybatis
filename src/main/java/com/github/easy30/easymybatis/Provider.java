@@ -1,11 +1,9 @@
 package com.github.easy30.easymybatis;
 
 
-import com.github.easy30.easymybatis.annotation.ColumnGeneration;
 import com.github.easy30.easymybatis.core.*;
 import com.github.easy30.easymybatis.dialect.Dialect;
 import com.github.easy30.easymybatis.utils.LineBuilder;
-import com.github.easy30.easymybatis.utils.ObjectSupport;
 import com.github.easy30.easymybatis.utils.Utils;
 
 import lombok.SneakyThrows;
@@ -15,7 +13,6 @@ import org.apache.ibatis.builder.annotation.ProviderContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +62,7 @@ public class Provider<E> {
 
             if(value!=null){
                 valueType = 2;
+                value=ProviderSupport.convertSqlAddParamPrefix(value.toString(), Const.OPTIONS_PARAMS);
             }
 
             // entity value
@@ -126,6 +124,7 @@ public class Provider<E> {
         //-- 剩下的
         if(extraColVals!=null){
             extraColVals.forEach((k,v)->{
+                v=ProviderSupport.convertSqlAddParamPrefix(v, Const.OPTIONS+"[0].params.");
                 columnBuilder.append(Utils.format("{},", ProviderSupport.convertColumn(k,entityAnnotation)));
                 valueBuilder.append(Utils.format("{},", v));
             });
@@ -143,7 +142,7 @@ public class Provider<E> {
         UpdateOption option=merge(options);
         EntityAnnotation entityAnnotation = EntityAnnotation.getInstanceByMapper(context.getMapperType());
         String table= MapperOptionSupport.getTable(entityAnnotation,option);
-        String set = ProviderSupport.sqlSetValues(table,entity, entityAnnotation,Const.ENTITY,option);
+        String set = ProviderSupport.sqlSetValues(table,entity, entityAnnotation,Const.ENTITY,option,true);
         String where= ProviderSupport.sqlWhereById(entity, entityAnnotation,Const.ENTITY);
         QueryDefine queryDefine=new QueryDefine(Global.SQL_TYPE_UPDATE);
         queryDefine.setWhere(where);
@@ -179,8 +178,8 @@ public class Provider<E> {
                 ProviderSupport.sqlWhereById(entity, entityAnnotation));
     }*/
 
-    public String updateByParams(ProviderContext context,@Param(Const.ENTITY) E entity, @Param(Const.PARAMS) Object params,
-                                 @Param(Const.PARAM_NAEMS) String paramNames,@Param(Const.OPTIONS) UpdateOption... options) {
+    public String updateByParams(ProviderContext context, @Param(Const.ENTITY) E entity, @Param(Const.PARAMS) Object params,
+                                 @Param(Const.PARAM_NAMES) String paramNames, @Param(Const.OPTIONS) UpdateOption... options) {
         if(StringUtils.isBlank(paramNames)) throw new MapperException("paramNames can not be empty");
         //Class entityClass = entity.getClass();
         if (entity == null || params == null) throw new RuntimeException("entity or params can not be null");
@@ -188,7 +187,7 @@ public class Provider<E> {
         UpdateOption option=merge(options);
         String table= MapperOptionSupport.getTable(entityAnnotation,option);
         //String sql = ProviderSupport.SQL_UPDATE;
-        String set = ProviderSupport.sqlSetValues(table,entity, entityAnnotation,Const.ENTITY,option);
+        String set = ProviderSupport.sqlSetValues(table,entity, entityAnnotation,Const.ENTITY,option,false);
         QueryDefine result= ProviderSupport.parseParams(entityAnnotation,params, paramNames.split("[,\\s]+"),Global.SQL_TYPE_UPDATE,"",null,Const.PARAMS ,merge(options));
         result.setSet(set);
         return result.toSQL();
@@ -207,7 +206,7 @@ public class Provider<E> {
         UpdateOption option=merge(options);
         String table= MapperOptionSupport.getTable(entityAnnotation,option);
         //Map<String, ColumnAnnotation> propertyColumnMap = entityAnnotation.getPropertyColumnMap();
-        String set = ProviderSupport.sqlSetValues(table,entity,entityAnnotation, Const.ENTITY,option);
+        String set = ProviderSupport.sqlSetValues(table,entity,entityAnnotation, Const.ENTITY,option,false);
         if (StringUtils.isBlank(condition))
             throw new RuntimeException("because of safety, where condition can not be blank. (set where to * for updating all records)");
         if (condition.equals("*")) condition = "";//update all
@@ -314,7 +313,7 @@ public class Provider<E> {
 
     }
 
-    public String deleteByParams(ProviderContext context, @Param(Const.PARAMS) Object params,@Param(Const.PARAM_NAEMS) String paramNames,@Param(Const.OPTIONS)DeleteOption... options) {
+    public String deleteByParams(ProviderContext context, @Param(Const.PARAMS) Object params, @Param(Const.PARAM_NAMES) String paramNames, @Param(Const.OPTIONS)DeleteOption... options) {
         if(StringUtils.isBlank(paramNames)) throw new MapperException("paramNames can not be empty");
         EntityAnnotation entityAnnotation = EntityAnnotation.getInstanceByMapper(context.getMapperType());
         return ProviderSupport.sqlByParams(entityAnnotation,params,paramNames.split("[,\\s]+"), Global.SQL_TYPE_DELETE, "", null,  Const.PARAMS,merge(options));

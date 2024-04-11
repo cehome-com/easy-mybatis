@@ -6,7 +6,7 @@ package com.github.easy30.easymybatis;
 public interface Const {
     String ENTITY = "e";
     String PARAMS = "params";
-    String PARAM_NAEMS = "paramNames";
+    String PARAM_NAMES = "paramNames";
     String WHERE = "w";
     String CONDITION="condition";
     String COLUMN = "c";
@@ -19,6 +19,7 @@ public interface Const {
     String VALUE_MAP="valueMap";
     String PARAM_MAP="paramMap";
     String OPTIONS ="options";
+    String OPTIONS_PARAMS=OPTIONS+"[0].params";
 
 
 }

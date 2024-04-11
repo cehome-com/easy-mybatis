@@ -16,17 +16,20 @@ import org.apache.ibatis.builder.annotation.MapperAnnotationBuilder;
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
 import org.apache.ibatis.executor.keygen.KeyGenerator;
 import org.apache.ibatis.executor.keygen.SelectKeyGenerator;
-import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.SqlCommandType;
-import org.apache.ibatis.mapping.StatementType;
+import org.apache.ibatis.mapping.*;
+import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.session.Configuration;
+import org.springframework.beans.BeanUtils;
+import org.springframework.util.CollectionUtils;
 
+import javax.persistence.Column;
+import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class EasyConfiguration extends Configuration {
@@ -35,6 +38,7 @@ public class EasyConfiguration extends Configuration {
     private Map<String, Generation> generations = new ConcurrentHashMap<>();
     private Map<Class,String> entityClassTableMap;//custom entity table;
     private boolean init = false;
+    private Map<Class,ResultMap> changeResultMapMap =Collections.synchronizedMap(new HashMap());
 
     public EasyConfiguration() {
         //-- default config
@@ -85,7 +89,7 @@ public class EasyConfiguration extends Configuration {
 
 
     //@SneakyThrows
-    protected void initMappedStatement(MappedStatement ms) {
+    protected void initMappedStatement(MappedStatement ms)  {
         //-- init  dialect
         if (dialect == null) {
             dialect = DialectFactory.createDialect(dialectName, this);
@@ -114,16 +118,81 @@ public class EasyConfiguration extends Configuration {
             }
         }
 
+        Class entityClass = entityAnnotation.getEntityClass();
         if (ms.getSqlCommandType().equals(SqlCommandType.INSERT)) {
             //-- set auto-key-return
-            Class entityClass = entityAnnotation.getEntityClass();
+
             //get mapper  method
             String mapperMethodName = id.substring(lastPeriod + 1);
             Method mapperMethod = Arrays.stream(mapperClass.getMethods()).filter(m -> m.getName().equals(mapperMethodName)).findFirst().orElse(null);
             doKeyGenerator(mapperClass, entityClass, mapperMethod, ms);
+        }else  if (ms.getSqlCommandType().equals(SqlCommandType.SELECT)) {
+            changeResultMaps(ms);
         }
 
     }
+
+    /**
+     * find @Column(name="ccc"), build prop and column name mapping;
+     * @param ms
+     */
+    private void changeResultMaps(MappedStatement ms) {
+        List<ResultMap> resultMaps = ms.getResultMaps();
+        if (CollectionUtils.isEmpty(resultMaps)) return;
+        List<ResultMap> newResultMaps = new ArrayList<>();
+        boolean change = false;
+        for (ResultMap resultMap : resultMaps) {
+            Class<?> resultClass = resultMap.getType();
+            ResultMap newResultMap = changeResultMapMap.get(resultClass);
+            if (newResultMap == null) {
+                //Build new ResultMapping List
+                List<ResultMapping> newResultMappings = getColumnResultMappings(resultClass);
+                if (newResultMappings.size() > 0) {
+                    //keep old ResultMapping . resultMap.getResultMappings() mostly  empty
+                    if (resultMap.getResultMappings() != null) {
+                        Set<String> propSet = newResultMappings.stream().map(ResultMapping::getProperty).collect(Collectors.toSet());
+                        for (ResultMapping oldResultMapping : resultMap.getResultMappings()) {
+                            if(!propSet.contains(oldResultMapping.getProperty())){
+                                newResultMappings.add(oldResultMapping);
+                            }
+                        }
+                    }
+
+                    //Build new ResultMap
+                    ResultMap.Builder newResultMapBuilder = new ResultMap.Builder(this, resultMap.getId(), resultMap.getType(), newResultMappings, resultMap.getAutoMapping());
+                    newResultMap = newResultMapBuilder.build();
+                    changeResultMapMap.put(resultClass, newResultMap);
+
+                }
+            }
+
+            //add ResultMap to newResultMaps
+            if (newResultMap == null) { //add old
+                newResultMaps.add(resultMap);
+            } else { //add new
+                change = true;
+                newResultMaps.add(newResultMap);
+            }
+        }
+        if (change) {
+            ObjectSupport.setField(ms, "resultMaps", newResultMaps);
+        }
+
+
+    }
+
+    private List<ResultMapping> getColumnResultMappings(Class<?> resultClass) {
+        PropertyDescriptor[] propertyDescriptors = BeanUtils.getPropertyDescriptors(resultClass);
+        List<ResultMapping> resultMappings = new ArrayList<ResultMapping>();
+        for (PropertyDescriptor pd : propertyDescriptors) {
+            Column column = ObjectSupport.getAnnotation(Column.class, resultClass, pd);
+            if (column == null || StringUtils.isBlank(column.name())) continue;
+            ResultMapping.Builder builder = new ResultMapping.Builder(this, pd.getName(), column.name(), pd.getPropertyType());
+            resultMappings.add(builder.build());
+        }
+        return resultMappings;
+    }
+
 
     private void doKeyGenerator(Class mapperClass, Class entityClass, Method method, MappedStatement ms) {
         log.debug("------ mapper:{},entity:{},method:{}", mapperClass, entityClass, method);
