@@ -13,7 +13,7 @@ public class UUIDGeneration implements Generation {
 
     @Override
     public Object generate(GenerationContext context) {
-        return  UUID.randomUUID().toString();
+        return  UUID.randomUUID().toString().replace("-","");
     }
 
 }

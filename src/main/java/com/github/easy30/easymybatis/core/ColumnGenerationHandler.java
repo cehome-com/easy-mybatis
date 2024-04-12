@@ -1,5 +1,6 @@
 package com.github.easy30.easymybatis.core;
 
+import com.github.easy30.easymybatis.EasyConfiguration;
 import com.github.easy30.easymybatis.Generation;
 import com.github.easy30.easymybatis.GenerationContext;
 import com.github.easy30.easymybatis.annotation.ColumnGeneration;
@@ -98,7 +99,7 @@ public class ColumnGenerationHandler {
             if(StringUtils.isNotBlank(generatorName)) {
                 Generation generation = generations.get(generatorName);
                 if (generation == null) {
-                    throw new RuntimeException("Generator bean '" + generatorName + "' not found for entity class " + entityAnnotation.getEntityClass());
+                    throwEx("",generatorName, entityAnnotation.getEntityClass());
                 }
                  setGeneration(generation);
             }
@@ -107,7 +108,7 @@ public class ColumnGenerationHandler {
             if(StringUtils.isNotBlank(generatorName)) {
                 Generation generation = generations.get(generatorName);
                 if (generation == null) {
-                    throw new RuntimeException("Insert Generator bean '" + generatorName + "' not found for entity class " + entityAnnotation.getEntityClass());
+                    throwEx("Insert",generatorName, entityAnnotation.getEntityClass());
                 }
                 setInsertGeneration(generation);
             }
@@ -116,12 +117,16 @@ public class ColumnGenerationHandler {
             if(StringUtils.isNotBlank(generatorName)) {
                 Generation generation = generations.get(generatorName);
                 if (generation == null) {
-                    throw new RuntimeException("Update Generator bean '" + generatorName + "' not found for entity class " + entityAnnotation.getEntityClass());
+                    throwEx("Update",generatorName, entityAnnotation.getEntityClass());
                 }
                 setUpdateGeneration(generation);
             }
 
         }
         init=true;
+    }
+    private void throwEx(String prefix, String generatorName,Class clazz ){
+        throw new RuntimeException(prefix+" Generation '" + generatorName + "' not found for entity class " + clazz
+                +", use 'EasyConfiguration.addGeneration()' to add Generation" );
     }
 }
