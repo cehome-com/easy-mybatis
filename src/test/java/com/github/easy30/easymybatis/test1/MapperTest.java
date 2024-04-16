@@ -586,6 +586,13 @@ public class MapperTest {
         System.out.println(JSON.toJSONString(userMapper.get(4L,null)));
     }
 
+
+    @Test
+    public void getValue(){
+        Object value = userMapper.getValue(4L, "name");
+        System.out.println(value);
+    }
+
    /* @Test
     public void listsql(){
         Map map=new HashMap();

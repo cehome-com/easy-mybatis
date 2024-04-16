@@ -235,6 +235,18 @@ public class Provider<E> {
         return ProviderSupport.sqlById(entityAnnotation, id, Global.SQL_TYPE_SELECT, selectColumns,table);
     }
 
+    public String getValue(ProviderContext context, @Param(Const.ID) Object id, @Param(Const.COLUMN) String column,@Param(Const.OPTIONS) SelectOption... options) {
+        EntityAnnotation entityAnnotation = EntityAnnotation.getInstanceByMapper(context.getMapperType());
+        SelectOption option=merge(options);
+        String table= MapperOptionSupport.getTable(entityAnnotation,option);
+        if (StringUtils.isBlank(column)) {
+            throw new MapperException("column name need");
+        } else {
+            column = ProviderSupport.convertPropsToColumns(column, entityAnnotation,table,null);
+        }
+        return ProviderSupport.sqlById(entityAnnotation, id, Global.SQL_TYPE_SELECT, column,table);
+    }
+
     public String listByIds(ProviderContext context, @Param(Const.IDS) Object[] ids, @Param(Const.COLUMNS) String selectColumns,@Param(Const.OPTIONS) SelectOption... options) {
         EntityAnnotation entityAnnotation = EntityAnnotation.getInstanceByMapper(context.getMapperType());
         SelectOption option=merge(options);

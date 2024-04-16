@@ -117,16 +117,31 @@ public interface Mapper<E,R> {
                   @Param(Const.ORDER) String orderBy,
                   @Param(Const.COLUMNS) String selectColumns,@Param(Const.OPTIONS) SelectOption... options);
 
+
+    /**
+     *
+     * @param id
+     * @param column
+     * @param options
+     * @param <V>
+     * @return
+     */
+    @SelectProvider(type = Provider.class, method = "getValue")
+    <V> V getValue(@Param(Const.ID) Object id,
+          @Param(Const.COLUMN) String column,
+          @Param(Const.OPTIONS) SelectOption... options);
+
+
     /**
      * get one column
      * @param params E(entity or same props Object), Map
      * @param column  prop or column name. null - return the first column
-     * @param <T>
+     * @param <V>
      * @return
      */
     @LimitOne
     @SelectProvider(type = Provider.class, method = "getValueByParams")
-    <T> T getValueByParams(@Param(Const.PARAMS) Object params,
+    <V> V getValueByParams(@Param(Const.PARAMS) Object params,
                            @Param(Const.ORDER) String orderBy,
                            @Param(Const.COLUMN)  String column,@Param(Const.OPTIONS) SelectOption... options);
 
@@ -135,12 +150,12 @@ public interface Mapper<E,R> {
      * @param condition  {realName}=#{realName} or real_name=#{realName} . You can use {prop} to instead of column name
      * @param params E(entity or same props Object), Map
      * @param column prop or column name. null - return the first column
-     * @param <T>
+     * @param <V>
      * @return
      */
     @LimitOne
     @SelectProvider(type = Provider.class, method = "getValueByCondition")
-    <T> T getValueByCondition(@Param(Const.CONDITION) String condition,
+    <V> V getValueByCondition(@Param(Const.CONDITION) String condition,
                               @Param(Const.PARAMS) Object params,
                               @Param(Const.COLUMN) String column,@Param(Const.OPTIONS) SelectOption... options);
 
@@ -148,12 +163,12 @@ public interface Mapper<E,R> {
      * get one column
      * @param sql  select column1 from {TABLE}
      * @param params
-     * @param <T>
+     * @param <V>
      * @return
      */
     @LimitOne
     @SelectProvider(type = Provider.class, method = "getValueBySQL")
-    <T> T getValueBySQL(@Param(Const.SQL) String sql,
+    <V> V getValueBySQL(@Param(Const.SQL) String sql,
                         @Param(Const.PARAMS) Object params);
 
     /**
