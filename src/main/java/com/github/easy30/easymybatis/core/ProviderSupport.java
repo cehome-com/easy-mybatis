@@ -59,19 +59,21 @@ public class ProviderSupport {
 
 
             //-- entity value
-            if (value == null) {
-
-                if (changedProperties == null || changedProperties.contains(prop)) {
+            if (valueType == 0) {
+                if (changedProperties == null) {
                     value = entityAnnotation.getProperty(entity, prop);
-                }
-                if (value != null) {
-                    valueType = 1;
+                    if (value != null) {
+                        valueType = 1;
 
+                    }
+                }else if(changedProperties.contains(prop)){// support null
+                    value = entityAnnotation.getProperty(entity, prop);
+                    valueType = 1;
                 }
             }
 
             //-- dialect value  实体继承DialectEntity,可以设置原始sql值,不建议使用,建议从UpdateOption中设置
-            if (value == null) {
+            if (valueType == 0) {
                 value = entityAnnotation.getDialectValue(entity, prop);
                 if (value != null) {
                     valueType = 2;
@@ -79,7 +81,7 @@ public class ProviderSupport {
             }
 
             // generator value
-            if (value == null) {
+            if (valueType == 0) {
 
                 ColumnGenerationHandler columnGenerationHandler = columnAnnotation.getColumnGenerationHandler();
                 if (columnGenerationHandler != null) {
@@ -93,7 +95,7 @@ public class ProviderSupport {
             }
 
             //-- default 注解定义的缺省值
-            if (value == null) {
+            if (valueType == 0) {
                 value = columnAnnotation.getColumnUpdateDefault();
                 if (value != null) {
                     valueType = 2;

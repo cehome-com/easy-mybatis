@@ -3,6 +3,7 @@ package com.github.easy30.easymybatis;
 
 import com.github.easy30.easymybatis.core.*;
 import com.github.easy30.easymybatis.dialect.Dialect;
+import com.github.easy30.easymybatis.utils.EntityProxyFactory;
 import com.github.easy30.easymybatis.utils.LineBuilder;
 import com.github.easy30.easymybatis.utils.Utils;
 
@@ -43,7 +44,8 @@ public class Provider<E> {
         Set ignoreColumnSet= MapperOptionSupport.getIgnoreColumnSet(option);
         Map<String,String> extraColVals= MapperOptionSupport.getExtraColVals(option);
         String table= MapperOptionSupport.getTable(entityAnnotation,option);
-
+        //cglib proxy objects
+        Set<String> changedProperties = EntityProxyFactory.getChangedProperties(entity);
         for (Map.Entry<String, ColumnAnnotation> e : columnMap.entrySet()) {
 
             ColumnAnnotation columnAnnotation = e.getValue();
@@ -66,16 +68,22 @@ public class Provider<E> {
             }
 
             // entity value
-            if(value==null) {
-                value = entityAnnotation.getProperty(entity, prop);
-                if (value != null) {
-                    valueType = 1;
+            if(valueType == 0) {
+                if (changedProperties == null) {
+                    value = entityAnnotation.getProperty(entity, prop);
+                    if (value != null) {
+                        valueType = 1;
 
+                    }
+                }else if(changedProperties.contains(prop)){// support null
+                    value = entityAnnotation.getProperty(entity, prop);
+                    valueType = 1;
                 }
+
             }
 
             // dialect value
-            if(value==null)  {
+            if(valueType == 0)  {
 
                 value = entityAnnotation.getDialectValue(entity, prop);
                 if (value != null) {
@@ -85,7 +93,7 @@ public class Provider<E> {
             }
 
             // generator value
-            if (value == null) {
+            if (valueType == 0) {
                 ColumnGenerationHandler columnGenerationHandler = columnAnnotation.getColumnGenerationHandler();
                 if (columnGenerationHandler != null) {
                     value=columnGenerationHandler.getInsertValue(table, entity, prop,columnAnnotation.getPropType());
@@ -99,7 +107,7 @@ public class Provider<E> {
 
 
             // default value
-            if (value == null) {
+            if (valueType == 0) {
                 value = columnAnnotation.getColumnInsertDefault();
                 if (value != null) {
                     valueType = 2;

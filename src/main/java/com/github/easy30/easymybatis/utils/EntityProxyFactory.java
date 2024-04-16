@@ -25,6 +25,7 @@ public class EntityProxyFactory {
     }
 
     public static Set<String> getChangedProperties(Object entity) {
+        if(entity==null) return null;
         EntityMethodInterceptor interceptor = getInterceptor(entity);
         if (interceptor != null) {
             return interceptor.getProperties();
