@@ -1,13 +1,9 @@
 package com.github.easy30.easymybatis.core;
 
 import com.github.easy30.easymybatis.*;
-import com.github.easy30.easymybatis.annotation.ForeignColumn;
 import com.github.easy30.easymybatis.annotation.LimitOne;
 import com.github.easy30.easymybatis.dialect.Dialect;
-import com.github.easy30.easymybatis.utils.ObjectSupport;
 import com.github.easy30.easymybatis.utils.Utils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.ibatis.binding.MapperMethod;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.*;
@@ -15,22 +11,16 @@ import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.plugin.Intercepts;
 import org.apache.ibatis.plugin.Invocation;
 import org.apache.ibatis.plugin.Signature;
-import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
-import org.springframework.util.CollectionUtils;
 
-import java.beans.PropertyDescriptor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * coolma 2019/11/1
@@ -80,89 +70,92 @@ public class DefaultInterceptor implements Interceptor {
 
         MappedStatement statement = (MappedStatement) args[0];
 
+        try {
+            ConfigurationContext.set(statement.getConfiguration());
+            // -- do with select
+            if (statement.getSqlCommandType() == SqlCommandType.SELECT) {
 
+                Page page = getPage(args[1]);
+                Page contextPage = PageContext.get();
+                boolean limitOne = isLimitOne(statement);
 
-        // -- do with select
-        if (statement.getSqlCommandType() == SqlCommandType.SELECT) {
+                //-- do with page  or  limit 1
+                if (page != null || contextPage != null || limitOne) {
+                    try {
+                        // -- avoid recursively invoke :executor.query
+                        inPage.set(true);
+                        Object parameterObject = args[1];
+                        RowBounds rowBounds = (RowBounds) args[2];
+                        Executor executor = (Executor) invocation.getTarget();
 
-            Page page = getPage(args[1]);
-            Page contextPage=PageContext.get();
-            boolean limitOne= isLimitOne(statement);
+                        BoundSql boundSql = statement.getBoundSql(parameterObject);
+                        String sql = boundSql.getSql();
 
-            //-- do with page  or  limit 1
-            if (page != null || contextPage!=null || limitOne) {
-                try {
-                    // -- avoid recursively invoke :executor.query
-                    inPage.set(true);
-                    Object parameterObject = args[1];
-                    RowBounds rowBounds = (RowBounds) args[2];
-                    Executor executor = (Executor) invocation.getTarget();
+                        String pageSql = dialect.getPageSql(sql);
+                        List<ParameterMapping> pms = dialect.getPageParameterMapping(statement.getConfiguration(), boundSql.getParameterMappings());
 
-                    BoundSql boundSql = statement.getBoundSql(parameterObject);
-                    String sql = boundSql.getSql();
-
-                    String pageSql = dialect.getPageSql(sql);
-                    List<ParameterMapping> pms = dialect.getPageParameterMapping(statement.getConfiguration(), boundSql.getParameterMappings());
-
-                    BoundSql pageBoundSql = new BoundSql(statement.getConfiguration(), pageSql, pms, parameterObject);
-                    // fix "mybatis Expected one result (or null) to be returned by selectOne()"
-                    // If method getByParams() ,getValueByParams() has more than one records , return the first one.
-                    //@see org.apache.ibatis.session.defaults.DefaultSqlSession.selectOne(java.lang.String, java.lang.Object)
-                    if(page==null){
-                        if(contextPage!=null){
-                            page=contextPage;
-                        }else { //limitOne
-                            page=new Page(1,1);
+                        BoundSql pageBoundSql = new BoundSql(statement.getConfiguration(), pageSql, pms, parameterObject);
+                        // fix "mybatis Expected one result (or null) to be returned by selectOne()"
+                        // If method getByParams() ,getValueByParams() has more than one records , return the first one.
+                        //@see org.apache.ibatis.session.defaults.DefaultSqlSession.selectOne(java.lang.String, java.lang.Object)
+                        if (page == null) {
+                            if (contextPage != null) {
+                                page = contextPage;
+                            } else { //limitOne
+                                page = new Page(1, 1);
+                            }
+                            pageBoundSql.setAdditionalParameter(Const.PAGE, page);
                         }
-                        pageBoundSql.setAdditionalParameter(Const.PAGE,page);
+
+
+                        copyAdditionalParameter(boundSql, pageBoundSql);
+                        CacheKey cacheKey = executor.createCacheKey(statement, parameterObject, rowBounds, pageBoundSql);
+                        //Class entityClass= EntityAnnotation.getInstanceByMapper(getMapperClass(statement.getId())).getEntityClass();
+                        List list = executor.query(statement, parameterObject, rowBounds, null, cacheKey, pageBoundSql);
+
+                        page.setData(list);
+                        if (page.isQueryCount()) {
+                            String countSql = dialect.getCountSql(sql);
+                            BoundSql countBoundSql = new BoundSql(statement.getConfiguration(), countSql, boundSql.getParameterMappings(), parameterObject);
+                            copyAdditionalParameter(boundSql, countBoundSql);
+                            cacheKey = executor.createCacheKey(statement, parameterObject, rowBounds, countBoundSql);
+                            int total = (Integer) executor.query(createMappedStatement(statement, Integer.class), parameterObject, rowBounds, null, cacheKey, countBoundSql).get(0);
+                            page.setRecordCount(total);
+                            page.setPageCount(total == 0 ? 0 : (total - 1) / page.getPageSize() + 1);
+                        }
+
+                        if (limitOne && list != null && list.size() > 1) {
+                            list = list.subList(0, 1);
+                        }
+                        ListPage result = new ListPage(page.getPageIndex(), page.getPageSize());
+                        result.setData(list);
+                        result.setRecordCount(page.getRecordCount());
+                        result.setPageCount(page.getPageCount());
+                        result.setQueryCount(page.isQueryCount());
+                        return result;
+
+                    } finally {
+                        if (contextPage != null) PageContext.remove();
+                        inPage.remove();
+                    }
+                } else {
+                    List list = (List) invocation.proceed();
+                    Method m = getMethod(statement.getId());
+                    if (!hasPage(m)) {
+                        return list;
                     }
 
+                    Page p = createListPage(list);
+                    return p;
 
-                    copyAdditionalParameter(boundSql,pageBoundSql);
-                    CacheKey cacheKey = executor.createCacheKey(statement, parameterObject, rowBounds, pageBoundSql);
-                    //Class entityClass= EntityAnnotation.getInstanceByMapper(getMapperClass(statement.getId())).getEntityClass();
-                    List list = executor.query(statement, parameterObject, rowBounds, null, cacheKey, pageBoundSql);
-
-                    page.setData(list);
-                    if (page.isQueryCount()) {
-                        String countSql = dialect.getCountSql(sql);
-                        BoundSql countBoundSql = new BoundSql(statement.getConfiguration(), countSql, boundSql.getParameterMappings(), parameterObject);
-                        copyAdditionalParameter(boundSql,countBoundSql);
-                        cacheKey = executor.createCacheKey(statement, parameterObject, rowBounds, countBoundSql);
-                        int total = (Integer) executor.query(createMappedStatement(statement, Integer.class), parameterObject, rowBounds, null, cacheKey, countBoundSql).get(0);
-                        page.setRecordCount(total);
-                        page.setPageCount(total == 0 ? 0 : (total - 1) / page.getPageSize() + 1);
-                    }
-
-                    if(limitOne && list != null && list.size() > 1 ){
-                        list= list.subList(0, 1);
-                    }
-                    ListPage result=new ListPage(page.getPageIndex(),page.getPageSize());
-                    result.setData(list);
-                    result.setRecordCount(page.getRecordCount());
-                    result.setPageCount(page.getPageCount());
-                    result.setQueryCount(page.isQueryCount());
-                    return result;
-
-                } finally {
-                    if(contextPage!=null) PageContext.remove();
-                    inPage.remove();
                 }
-            }else{
-                List list = (List) invocation.proceed();
-                Method m = getMethod(statement.getId());
-                if(!hasPage(m)){
-                    return list;
-                }
 
-                Page p = createListPage(list);
-                return p;
 
+            } else { //update
+                return invocation.proceed();
             }
-
-
-        } else { //update
-            return invocation.proceed();
+        }finally {
+            ConfigurationContext.remove();
         }
 
 

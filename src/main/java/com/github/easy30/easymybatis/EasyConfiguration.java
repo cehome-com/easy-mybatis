@@ -37,9 +37,10 @@ public class EasyConfiguration extends Configuration {
     private String dialectName;
     private Map<String, Generation> generations = new ConcurrentHashMap<>();
     private Map<Class,String> entityClassTableMap;//custom entity table;
+    private Map<String,Class> tableEntityClassMap;
     private boolean init = false;
     private Map<Class,ResultMap> changeResultMapMap =Collections.synchronizedMap(new HashMap());
-
+    private  EntityTypeHandler entityTypeHandler;
     public EasyConfiguration() {
         //-- default config
         setMapUnderscoreToCamelCase(true);
@@ -50,6 +51,10 @@ public class EasyConfiguration extends Configuration {
 
     public String getDialectName() {
         return dialectName;
+    }
+
+    public Dialect getDialect() {
+        return dialect;
     }
 
     public void setDialectName(String dialectName) {
@@ -77,8 +82,25 @@ public class EasyConfiguration extends Configuration {
         return entityClassTableMap;
     }
 
+    public Map<String,Class> getTableEntityClassMap() {
+        return tableEntityClassMap;
+    }
+
     public void setEntityClassTableMap(Map<Class, String> entityClassTableMap) {
         this.entityClassTableMap = entityClassTableMap;
+        if(entityClassTableMap==null) tableEntityClassMap=null;
+        else {
+            entityClassTableMap.forEach((k,v)->tableEntityClassMap.put(v,k));
+        }
+
+    }
+
+    public EntityTypeHandler getEntityTypeHandler() {
+        return entityTypeHandler;
+    }
+
+    public void setEntityTypeHandler(EntityTypeHandler entityTypeHandler) {
+        this.entityTypeHandler = entityTypeHandler;
     }
 
     @Override
@@ -107,18 +129,21 @@ public class EasyConfiguration extends Configuration {
             return;
         }
         //-- set dialect/mapper/custom table
-        EntityAnnotation entityAnnotation = EntityAnnotation.getInstanceByMapper(mapperClass);
-        if(entityAnnotation.getMapperClass()==null) {
-            entityAnnotation.setDialect(dialect);
-            entityAnnotation.setMapperClass(mapperClass);
-            entityAnnotation.setEasyConfiguration(this);
-            if(entityClassTableMap!=null){
+        Class entityClass= ObjectSupport.getGenericInterfaces(mapperClass, 0, 0);
+        EntityAnnotation entityAnnotation= EntityAnnotation.getInstanceOnly(entityClass);
+        if(entityAnnotation==null) {
+            entityAnnotation = EntityAnnotation.getInstance(entityClass);
+            //entityAnnotation.setDialect(dialect);
+            entityAnnotation.setMapperClass(mapperClass);//todo:delete
+            if(entityTypeHandler!=null) entityTypeHandler.register(this,this.getTypeHandlerRegistry(),entityClass);
+            //entityAnnotation.setEasyConfiguration(this);
+            /*if(entityClassTableMap!=null){
                 String table = entityClassTableMap.get(entityAnnotation.getEntityClass());
                 if(table!=null) entityAnnotation.setTable(table);
-            }
+            }*/
         }
 
-        Class entityClass = entityAnnotation.getEntityClass();
+        //Class entityClass = entityAnnotation.getEntityClass();
         if (ms.getSqlCommandType().equals(SqlCommandType.INSERT)) {
             //-- set auto-key-return
 

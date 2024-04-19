@@ -8,6 +8,7 @@ import com.github.easy30.easymybatis.annotation.EntitySelectKey;
 import com.github.easy30.easymybatis.dialect.Dialect;
 import com.github.easy30.easymybatis.utils.ObjectSupport;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.ibatis.session.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.LinkedCaseInsensitiveMap;
@@ -22,6 +23,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Entity Annotation Helper
@@ -30,8 +32,9 @@ import java.util.*;
  */
 public class EntityAnnotation {
     private static Logger logger = LoggerFactory.getLogger(EntityAnnotation.class);
-    private static Map<Class, EntityAnnotation> beanMap = new HashMap<Class, EntityAnnotation>();
-    ;
+    private static Map<Class, EntityAnnotation> beanMap = new ConcurrentHashMap<>();
+    private static Map<Table, EntityAnnotation> tableMap = new ConcurrentHashMap<>();
+
 
     private Set<String> transientColumnSet = new HashSet<String>();
     private Set<String> lobColumnSet = new HashSet<String>();
@@ -53,7 +56,6 @@ public class EntityAnnotation {
     private EntitySelectKey entitySelectKey;
     private Dialect dialect;
     private MapperFactory mapperFactory;
-    private EasyConfiguration easyConfiguration;
 
     public static EntityAnnotation getInstance(Class entityClass) {
         // cblib child class to parent class
@@ -83,6 +85,18 @@ public class EntityAnnotation {
         return getInstance(ObjectSupport.getGenericInterfaces(mapperClass, 0, 0));
     }
 
+    public static EntityAnnotation getInstanceByTable(String table) {
+        if(ConfigurationContext.getEasyConfiguration()!=null){
+            Map<String,Class> tableEntityClassMap = ConfigurationContext.getEasyConfiguration().getTableEntityClassMap();
+            if(tableEntityClassMap!=null){
+                Class entityClass=tableEntityClassMap.get(table);
+                if(entityClass!=null) return getInstance(entityClass);
+            }
+
+        }
+        return tableMap.get(table);
+    }
+
 
     public Set<String> getLobColumnSet() {
         return lobColumnSet;
@@ -110,12 +124,22 @@ public class EntityAnnotation {
      * @return
      */
     public String getTable() {
+        if(ConfigurationContext.getEasyConfiguration()!=null){
+            Map<Class, String> entityClassTableMap = ConfigurationContext.getEasyConfiguration().getEntityClassTableMap();
+            String customTable;
+            if(entityClassTableMap!=null){
+                customTable=entityClassTableMap.get(this.entityClass);
+                if(customTable!=null) return customTable;
+            }
+
+        }
         return table;
     }
 
 	public void setTable(String table) {
 		this.table = table;
 	}
+
 
     /**
      * prop,ColumnAnnotation  map
@@ -466,8 +490,14 @@ public class EntityAnnotation {
     }
 
     public Dialect getDialect() {
-        if(dialect==null) throw new MapperException("dialect is null");
-        return dialect;
+        if(ConfigurationContext.getEasyConfiguration()!=null){
+            Dialect dialect = ConfigurationContext.getEasyConfiguration().getDialect();
+            if (dialect == null) throw new MapperException("dialect is null");
+            return dialect;
+        } else { //先保留,要删除
+            if (dialect == null) throw new MapperException("dialect is null");
+            return dialect;
+        }
     }
 
     public void setDialect(Dialect dialect) {
@@ -482,11 +512,5 @@ public class EntityAnnotation {
         this.mapperFactory = mapperFactory;
     }
 
-    public EasyConfiguration getEasyConfiguration() {
-        return easyConfiguration;
-    }
 
-    public void setEasyConfiguration(EasyConfiguration easyConfiguration) {
-        this.easyConfiguration = easyConfiguration;
-    }
 }

@@ -1,6 +1,5 @@
 package com.github.easy30.easymybatis.core;
 
-import com.github.easy30.easymybatis.EasyConfiguration;
 import com.github.easy30.easymybatis.Generation;
 import com.github.easy30.easymybatis.GenerationContext;
 import com.github.easy30.easymybatis.annotation.ColumnGeneration;
@@ -9,7 +8,6 @@ import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.Map;
 
 public class ColumnGenerationHandler {
@@ -88,12 +86,14 @@ public class ColumnGenerationHandler {
 
     }
 
+
+
     private synchronized void doInit() {
         if(init) return;
         if (columnGeneration != null) {
 
-            Map<String, Generation> generations =entityAnnotation.getEasyConfiguration()!=null?
-                    entityAnnotation.getEasyConfiguration().getGenerations():
+            Map<String, Generation> generations =ConfigurationContext.getEasyConfiguration()!=null?
+                    ConfigurationContext.getEasyConfiguration().getGenerations():
                     entityAnnotation.getMapperFactory().getGenerations();
             String generatorName = columnGeneration.generation();
             if(StringUtils.isNotBlank(generatorName)) {
