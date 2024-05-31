@@ -18,9 +18,12 @@
         <property name="driverClass" value="com.mysql.jdbc.Driver"/>
         <property name="url" value="jdbc:mysql://localhost:3306/test?useUnicode=true&amp;characterEncoding=utf8&amp;allowMultiQueries=true&amp;useSSL=false&amp;allowPublicKeyRetrieval=true"/>
     </bean>
-    <bean id="sqlSessionFactory" class="com.github.easy30.easymybatis.EasySqlSessionFactoryBean">
+    <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
         <property name="dataSource" ref="dataSource" />
         <property name="mapperLocations" value="classpath*:com/github/easy30/easymybatis/sqlmap/*.xml"></property>
+        <property name="configuration" ref="configuration" />
+    </bean>
+    <bean id="configuration" class="com.github.easy30.easymybatis.EasyConfiguration">
     </bean>
     <bean id="sqlSessionTemplate" class="org.mybatis.spring.SqlSessionTemplate">
         <constructor-arg name="sqlSessionFactory" ref="sqlSessionFactory" />

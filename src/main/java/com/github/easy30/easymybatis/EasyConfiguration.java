@@ -1,14 +1,10 @@
 package com.github.easy30.easymybatis;
 
 import com.github.easy30.easymybatis.annotation.EntitySelectKey;
-import com.github.easy30.easymybatis.core.ColumnAnnotation;
-import com.github.easy30.easymybatis.core.DefaultInterceptor;
-import com.github.easy30.easymybatis.core.DialectFactory;
-import com.github.easy30.easymybatis.core.EntityAnnotation;
+import com.github.easy30.easymybatis.core.*;
 import com.github.easy30.easymybatis.dialect.Dialect;
 import com.github.easy30.easymybatis.utils.ObjectSupport;
 import com.github.easy30.easymybatis.utils.Utils;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.annotations.SelectKey;
@@ -17,7 +13,6 @@ import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
 import org.apache.ibatis.executor.keygen.KeyGenerator;
 import org.apache.ibatis.executor.keygen.SelectKeyGenerator;
 import org.apache.ibatis.mapping.*;
-import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.session.Configuration;
 import org.springframework.beans.BeanUtils;
 import org.springframework.util.CollectionUtils;
@@ -25,7 +20,6 @@ import org.springframework.util.CollectionUtils;
 import javax.persistence.Column;
 import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -128,31 +122,38 @@ public class EasyConfiguration extends Configuration {
         } catch (ClassNotFoundException e) {
             return;
         }
-        //-- set dialect/mapper/custom table
-        Class entityClass= ObjectSupport.getGenericInterfaces(mapperClass, 0, 0);
-        EntityAnnotation entityAnnotation= EntityAnnotation.getInstanceOnly(entityClass);
-        if(entityAnnotation==null) {
-            entityAnnotation = EntityAnnotation.getInstance(entityClass);
-            //entityAnnotation.setDialect(dialect);
-            entityAnnotation.setMapperClass(mapperClass);//todo:delete
-            if(entityTypeHandler!=null) entityTypeHandler.register(this,this.getTypeHandlerRegistry(),entityClass);
-            //entityAnnotation.setEasyConfiguration(this);
+        if(Mapper.class.isAssignableFrom(mapperClass)) {
+            //-- set dialect/mapper/custom table
+            Class entityClass = ObjectSupport.getGenericInterfaces(mapperClass, 0, 0);
+            EntityAnnotation entityAnnotation = EntityAnnotation.getInstanceOnly(entityClass);
+            if (entityAnnotation == null) {
+                entityAnnotation = EntityAnnotation.getInstance(entityClass);
+                //entityAnnotation.setDialect(dialect);
+                entityAnnotation.setMapperClass(mapperClass);//todo:delete
+                if (entityTypeHandler != null) entityTypeHandler.register(this, this.getTypeHandlerRegistry(), entityClass);
+                //entityAnnotation.setEasyConfiguration(this);
             /*if(entityClassTableMap!=null){
                 String table = entityClassTableMap.get(entityAnnotation.getEntityClass());
                 if(table!=null) entityAnnotation.setTable(table);
             }*/
-        }
+            }
 
-        //Class entityClass = entityAnnotation.getEntityClass();
-        if (ms.getSqlCommandType().equals(SqlCommandType.INSERT)) {
-            //-- set auto-key-return
+            //Class entityClass = entityAnnotation.getEntityClass();
+            if (ms.getSqlCommandType().equals(SqlCommandType.INSERT)) {
+                //-- set auto-key-return
 
-            //get mapper  method
-            String mapperMethodName = id.substring(lastPeriod + 1);
-            Method mapperMethod = Arrays.stream(mapperClass.getMethods()).filter(m -> m.getName().equals(mapperMethodName)).findFirst().orElse(null);
-            doKeyGenerator(mapperClass, entityClass, mapperMethod, ms);
-        }else  if (ms.getSqlCommandType().equals(SqlCommandType.SELECT)) {
-            changeResultMaps(ms);
+                //get mapper  method
+                String mapperMethodName = id.substring(lastPeriod + 1);
+                Method mapperMethod = Arrays.stream(mapperClass.getMethods()).filter(m -> m.getName().equals(mapperMethodName)).findFirst().orElse(null);
+                doKeyGenerator(mapperClass, entityClass, mapperMethod, ms);
+            } else if (ms.getSqlCommandType().equals(SqlCommandType.SELECT)) {
+                changeResultMaps(ms);
+            }
+        }else if(QuickMapperImpl.class.isAssignableFrom(mapperClass)){
+            if (ms.getSqlCommandType().equals(SqlCommandType.INSERT)) {
+                ObjectSupport.setFieldValue(ms, "keyGenerator", QuickJdbc3KeyGenerator.INSTANCE);
+
+            }
         }
 
     }

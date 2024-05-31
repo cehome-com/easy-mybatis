@@ -9,6 +9,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 /**
  * 使用EasySqlSessionFactoryBean 则 不再需要定义MapperFactory; 否则需要定义MapperFactory
  */
+@Deprecated
 public class EasySqlSessionFactoryBean extends SqlSessionFactoryBean implements BeanPostProcessor {
     MapperFactory mapperFactory;
     @Override

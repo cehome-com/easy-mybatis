@@ -3,6 +3,7 @@ package com.github.easy30.easymybatis.core;
 import com.github.easy30.easymybatis.*;
 import com.github.easy30.easymybatis.annotation.LimitOne;
 import com.github.easy30.easymybatis.dialect.Dialect;
+import com.github.easy30.easymybatis.utils.ObjectSupport;
 import com.github.easy30.easymybatis.utils.Utils;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.executor.Executor;
@@ -20,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -152,6 +154,11 @@ public class DefaultInterceptor implements Interceptor {
 
 
             } else { //update
+                if(Objects.equals(statement.getId(), QuickMapperImpl.class.getName()+"._insert")){
+                    ObjectSupport.setFieldValue(statement, "keyProperties", new String[]{"id"});
+                    ObjectSupport.setFieldValue(statement, "keyColumns",  new String[]{"id"});
+
+                }
                 return invocation.proceed();
             }
         }finally {
