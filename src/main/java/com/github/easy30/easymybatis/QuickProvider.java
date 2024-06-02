@@ -1,11 +1,14 @@
 package com.github.easy30.easymybatis;
 
 import com.alibaba.fastjson.JSONObject;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 public class QuickProvider {
 
@@ -49,27 +52,69 @@ public class QuickProvider {
     public String insert( Map<String, Object> params) {
         String tableName =  optionsLocal.get().getString("table");
         String sql = "insert into " + tableName + "({0}) values({1})";
-        String s1 = "";
-        String s2 = "";
-        List<Object> list = new ArrayList<Object>();
+        StringJoiner s1 = new StringJoiner(",");
+        StringJoiner s2 = new StringJoiner(",");
         for (Map.Entry<String, Object> e : params.entrySet()) {
-            if (s1 != "") {
-                s1 += ",";
-                s2 += ",";
+
+            if(e.getKey().startsWith("@")){
+                s1.add(e.getKey().substring(1));
+                s2.add(e.getValue().toString());
+
+            }else {
+                s1.add(e.getKey());
+                s2.add("#{" + e.getKey() + "}");
             }
-            s1 += e.getKey();
-           /* if (e!=null && ( e.getValue() instanceof JdbcNativeValue)) {
-                s2 += e.getValue();
-            }else{*/
-                list.add(e.getValue());
-                s2 += "#{"+ e.getKey()+"}";
-            //}
+
         }
 
         MessageFormat fmt = new MessageFormat(sql);
         Object[] args = { s1, s2 };
         sql = fmt.format(args);
 
+        return "<script>\n"+ sql+"\n</script>";
+    }
+
+    public String update( Map<String, Object> params) {
+        String tableName =  optionsLocal.get().getString("table");
+        String[] keyColumns= optionsLocal.get().getString(KEY_KEY_COLUMNS).split(",");
+        StringBuilder sb = new StringBuilder("update " + tableName + " set ");
+        StringJoiner joiner = new StringJoiner(",");
+        for (Map.Entry<String, Object> e : params.entrySet()) {
+            String k=e.getKey();
+            Object v=e.getValue();
+            if(e.getKey().startsWith("@")){
+                k=k.substring(1);
+            }else {
+               v="#{"+k+"}";
+
+            }
+            joiner.add( k+"="+v);
+        }
+        sb.append(joiner);
+
+        joiner = new StringJoiner(" and ");
+        for (String keyColumn:keyColumns) {
+            joiner.add(keyColumn+"="+"#{"+keyColumn+"}");
+        }
+        sb.append(" where ").append(joiner);
+
+
+        return getScript(sb.toString());
+    }
+
+    public String save( Map<String, Object> params) {
+        String tableName = optionsLocal.get().getString("table");
+        String keyColumns= optionsLocal.get().getString(KEY_KEY_COLUMNS);
+        if(StringUtils.isBlank(keyColumns)) throw new RuntimeException("keyColumns required");
+        String[] keyColumnArray = optionsLocal.get().getString(KEY_KEY_COLUMNS).split(",");
+
+        for (String keyColumn:keyColumnArray) {
+            if(params.get(keyColumn)==null) return insert(params);
+        }
+        return update(params);
+    }
+
+    private String getScript(String sql){
         return "<script>\n"+ sql+"\n</script>";
     }
 

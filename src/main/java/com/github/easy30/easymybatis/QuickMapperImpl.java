@@ -17,6 +17,8 @@ public interface QuickMapperImpl extends QuickMapper{
 
     @UpdateProvider(type = QuickProvider.class, method = "update")
     int doUpdate(Map params);
+    @UpdateProvider(type = QuickProvider.class, method = "save")
+    int doSave(Map params);
 
     default List<Map<String, Object>> list( String sql, Map params){
 
@@ -46,9 +48,34 @@ public interface QuickMapperImpl extends QuickMapper{
 
 
     default  int update(String table,  Map<String, Object> params,String keyColumns){
-        return 1;
+        try{
+            QuickProvider.addOptions("table",table);
+            QuickProvider.addOptions(QuickProvider.KEY_KEY_COLUMNS,keyColumns);
+            return  doUpdate(params);
+        }finally {
+            QuickProvider.removeOptions();
+        }
     }
 
+    default  int save(String table,  Map<String, Object> params,String keyColumns){
+        try{
+            QuickProvider.addOptions("table",table);
+            QuickProvider.addOptions(QuickProvider.KEY_KEY_COLUMNS,keyColumns);
+            return  doSave(params);
+        }finally {
+            QuickProvider.removeOptions();
+        }
+    }
+    default  int saveByQuery(String table,  Map<String, Object> params,String keyColumns){
+        if(StringUtils.isBlank(keyColumns)) throw new RuntimeException("keyColumns required");
+        try{
+            QuickProvider.addOptions("table",table);
+            QuickProvider.addOptions(QuickProvider.KEY_KEY_COLUMNS,keyColumns);
+            return  doSave(params);
+        }finally {
+            QuickProvider.removeOptions();
+        }
+    }
 
     default Map<String, Object> get( String table,String key ,Object value){
         String sql="select * from "+table+" where "+key+"=#{"+key+"}";
