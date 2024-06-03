@@ -97,7 +97,7 @@ public class Page<E> implements Serializable {
     }*/
 
     public int getRecordEnd() {
-        return pageIndex*pageIndex-1;
+        return getRecordStart()+(data==null?0:data.size());
     }
 
     /*   public void setRecordEnd(int recordEnd) {

@@ -1,10 +1,7 @@
 package com.github.easy30.easymybatis.test1;
 
 import com.alibaba.fastjson.JSON;
-import com.github.easy30.easymybatis.Page;
-import com.github.easy30.easymybatis.QuickMapperImpl;
-import com.github.easy30.easymybatis.Range;
-import com.github.easy30.easymybatis.UpdateOption;
+import com.github.easy30.easymybatis.*;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,17 +30,18 @@ public class QuickMapperTest {
 
     @Autowired
     SqlSessionTemplate sqlSessionTemplate;
-    QuickMapperImpl quickMapper;
+    QuickMapper quickMapper;
     Long id;
     Integer age=25;
     String name="ma";
     String realName="coolma";
+    String table="user";
 
     @Before
     public void before(){
 
         sqlSessionTemplate.getConfiguration().addMapper(QuickMapperImpl.class);
-          quickMapper = sqlSessionTemplate.getMapper(QuickMapperImpl.class);
+        quickMapper = sqlSessionTemplate.getMapper(QuickMapperImpl.class);
     }
 
     @Test
@@ -52,8 +50,10 @@ public class QuickMapperTest {
         Map<String,Object> map=new HashMap();
         map.put("name","name2");
         map.put("age",24);
-        quickMapper.insert("user",map);
+        quickMapper.insert("user",map,"id");
         System.out.println(JSON.toJSONString(map,true));
+
+
     }
     @Test
     public void testSelect()   {
@@ -405,11 +405,9 @@ public class QuickMapperTest {
 
     @Test
     public void pageByParams()   {
-        User params=new User();
-        params.setAge(age);
-        Page<User> page=new Page(1,3);
-        List<UserDto> list= userMapper.pageByParams(params,page," name asc, createTime desc","age,createTime",null);
-        System.out.println(page.getData().size()+"\r\n"+JSON.toJSONString(page));
+        Page<User> page=new Page(2,3);
+        List<Map<String, Object>> list = quickMapper.pageParams(page, null, table, Collections.singletonMap("age", 24), null);
+        System.out.println(JSON.toJSONString(page,true));
         Assert.assertTrue(page.getData().size()>0);
 
     }
