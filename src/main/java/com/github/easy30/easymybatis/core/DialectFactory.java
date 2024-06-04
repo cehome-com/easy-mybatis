@@ -3,8 +3,8 @@ package com.github.easy30.easymybatis.core;
 
 import com.github.easy30.easymybatis.dialect.*;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.ibatis.session.Configuration;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.util.HashMap;
 import java.util.Map;
@@ -44,43 +44,58 @@ public class DialectFactory {
         this.configuration = configuration;
     }*/
 
-    public static Dialect createDialect(String name, Configuration configuration) {
+    public static Dialect createDialect(String name) {
         //if (dialect != null) return dialect;
         Class c = null;
+        if (StringUtils.isBlank(name)) throw new RuntimeException("Dialect name is blank");
 
-            //if (dialect != null) return dialect;
+        //if (dialect != null) return dialect;
+        try {
+
+            c = map.get(name);
+            if (c == null) throw new RuntimeException("Dialect class not found for name: " + name);
+
+
+            Dialect dialect = (Dialect) c.newInstance();
+            return dialect;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+
+    }
+
+    public static Dialect createDialect(DataSource dataSource) {
+        Class c = null;
+
+        try {
+
+            Connection connection = null;
+            String url = null;
             try {
-                if (StringUtils.isNotBlank(name)) {
-                    c = map.get(name);
-                    if (c == null) throw new RuntimeException("Dialect class not found for name: " + name);
-
-                } else {
-                    Connection connection = null;
-                    String url =null;
-                    try {
-                        connection = configuration.getEnvironment().getDataSource().getConnection();
-                        url = connection.getMetaData().getURL().toLowerCase();
-                        for (String db : map.keySet()) {
-                            if (url.startsWith("jdbc:" + db.toLowerCase())) {
-                                c = map.get(db);
-                                break;
-                            }
-                        }
-                    } finally {
-                        if (connection != null) connection.close();
+                connection = dataSource.getConnection();
+                url = connection.getMetaData().getURL().toLowerCase();
+                for (String db : map.keySet()) {
+                    if (url.startsWith("jdbc:" + db.toLowerCase())) {
+                        c = map.get(db);
+                        break;
                     }
-                    if(c==null) throw new  RuntimeException("Not Dialect found for url "+url);
                 }
+            } finally {
+                if (connection != null) connection.close();
+            }
+            if (c == null) throw new RuntimeException("Not Dialect found for url " + url);
 
-                Dialect dialect = (Dialect) c.newInstance();
-                return dialect;
-            }
-            catch (RuntimeException e){
-                throw e;
-            }
-            catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+
+            Dialect dialect = (Dialect) c.newInstance();
+            return dialect;
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
 
     }

@@ -12,6 +12,7 @@ import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.plugin.Intercepts;
 import org.apache.ibatis.plugin.Invocation;
 import org.apache.ibatis.plugin.Signature;
+import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.slf4j.Logger;
@@ -71,9 +72,14 @@ public class DefaultInterceptor implements Interceptor {
         final Object[] args = invocation.getArgs();
 
         MappedStatement statement = (MappedStatement) args[0];
-
+        Configuration configuration=null;
+        boolean setConfigurationFlag=false;
         try {
-            ConfigurationContext.set(statement.getConfiguration());
+             configuration = ConfigurationContext.get();
+             if(configuration==null) {
+                 setConfigurationFlag=true;
+                 ConfigurationContext.set(statement.getConfiguration());
+             }
             // -- do with select
             if (statement.getSqlCommandType() == SqlCommandType.SELECT) {
 
@@ -162,7 +168,7 @@ public class DefaultInterceptor implements Interceptor {
                 return invocation.proceed();
             }
         }finally {
-            ConfigurationContext.remove();
+           if(setConfigurationFlag) ConfigurationContext.remove();
         }
 
 

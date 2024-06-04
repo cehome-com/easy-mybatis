@@ -96,7 +96,8 @@ public class MapperFactory implements BeanPostProcessor, InitializingBean, Appli
         else if (sqlSessionTemplate != null) configuration =sqlSessionTemplate.getConfiguration();
         else throw new RuntimeException("SqlSessionTemplate or SqlSessionFactory not found");
 
-        dialect = DialectFactory.createDialect(dialectName, configuration);
+        dialect =StringUtils.isNotBlank(dialectName)? DialectFactory.createDialect(dialectName)
+                :DialectFactory.createDialect( configuration.getEnvironment().getDataSource());
 
         //-- default config
         configuration.setMapUnderscoreToCamelCase(true);

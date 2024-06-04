@@ -43,6 +43,17 @@ public class EasyConfiguration extends Configuration {
 
     }
 
+    public void setEnvironment(Environment environment) {
+         super.setEnvironment(environment);
+        //-- init  dialect
+        if (dialect == null) {
+            dialect =StringUtils.isNotBlank(dialectName)? DialectFactory.createDialect(dialectName)
+                    :DialectFactory.createDialect( this.getEnvironment().getDataSource());
+        }
+        addInterceptor(new DefaultInterceptor(dialect));
+
+    }
+
     public String getDialectName() {
         return dialectName;
     }
@@ -106,11 +117,6 @@ public class EasyConfiguration extends Configuration {
 
     //@SneakyThrows
     protected void initMappedStatement(MappedStatement ms)  {
-        //-- init  dialect
-        if (dialect == null) {
-            dialect = DialectFactory.createDialect(dialectName, this);
-            addInterceptor(new DefaultInterceptor(dialect));
-        }
         //get mapper class
         String id = ms.getId();
         int lastPeriod = ms.getId().lastIndexOf('.');

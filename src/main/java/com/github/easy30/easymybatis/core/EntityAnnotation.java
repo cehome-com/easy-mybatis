@@ -490,8 +490,9 @@ public class EntityAnnotation {
     }
 
     public Dialect getDialect() {
-        if(ConfigurationContext.getEasyConfiguration()!=null){
-            Dialect dialect = ConfigurationContext.getEasyConfiguration().getDialect();
+        EasyConfiguration easyConfiguration= ConfigurationContext.getEasyConfiguration();
+        if(easyConfiguration!=null){
+            Dialect dialect = easyConfiguration.getDialect();
             if (dialect == null) throw new MapperException("dialect is null");
             return dialect;
         } else { //先保留,要删除
