@@ -18,9 +18,9 @@ import java.util.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = "classpath:applicationContext.xml")
-public class QuickMapperTest {
+public class CommonMapperTest {
 
-    private static Logger logger = LoggerFactory.getLogger(QuickMapperTest.class);
+    private static Logger logger = LoggerFactory.getLogger(CommonMapperTest.class);
 
     @Autowired
     DataSource dataSource;
@@ -30,7 +30,7 @@ public class QuickMapperTest {
 
     @Autowired
     SqlSessionTemplate sqlSessionTemplate;
-    QuickMapper quickMapper;
+    CommonMapper commonMapper;
     Long id;
     Integer age=25;
     String name="ma";
@@ -40,8 +40,8 @@ public class QuickMapperTest {
     @Before
     public void before(){
 
-        sqlSessionTemplate.getConfiguration().addMapper(QuickMapperImpl.class);
-        quickMapper = sqlSessionTemplate.getMapper(QuickMapperImpl.class);
+        sqlSessionTemplate.getConfiguration().addMapper(CommonMapperImpl.class);
+        commonMapper = sqlSessionTemplate.getMapper(CommonMapperImpl.class);
     }
 
     @Test
@@ -50,7 +50,7 @@ public class QuickMapperTest {
         Map<String,Object> map=new HashMap();
         map.put("name","name2");
         map.put("age",24);
-        quickMapper.insert("user",map,"id");
+        commonMapper.insert("user",map,"id");
         System.out.println(JSON.toJSONString(map,true));
 
 
@@ -406,7 +406,7 @@ public class QuickMapperTest {
     @Test
     public void pageByParams()   {
         Page<User> page=new Page(2,3);
-        List<Map<String, Object>> list = quickMapper.pageParams(page, null, table, Collections.singletonMap("age", 24), null);
+        List<Map<String, Object>> list = commonMapper.pageParams(page, null, table, Collections.singletonMap("age", 24), null);
         System.out.println(JSON.toJSONString(page,true));
         Assert.assertTrue(page.getData().size()>0);
 

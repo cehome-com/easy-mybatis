@@ -5,10 +5,10 @@ import org.apache.ibatis.annotations.Param;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.easy30.easymybatis.QuickProvider.PARAM_E;
-import static com.github.easy30.easymybatis.QuickProvider.PARAM_P;
+import static com.github.easy30.easymybatis.CommonProvider.PARAM_E;
+import static com.github.easy30.easymybatis.CommonProvider.PARAM_P;
 
-public interface QuickMapper {
+public interface CommonMapper {
     List<Map<String, Object>> listBySql(String sql, Map<String, Object> params);
 
     List<Map<String, Object>> listParams(String columns, String table, Map params, String orderBy);

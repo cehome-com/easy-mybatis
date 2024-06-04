@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.StringJoiner;
 
-public class QuickProvider {
+public class CommonProvider {
 
     private static ThreadLocal<JSONObject> optionsLocal = new ThreadLocal<JSONObject>();
 
@@ -136,18 +136,7 @@ public class QuickProvider {
         return getScript(sb.toString());
     }
 
-    public String save( Map<String, Object> row) {
-        String tableName = optionsLocal.get().getString("table");
-        String keyColumns= optionsLocal.get().getString(KEY_KEY_COLUMNS);
-        if(StringUtils.isBlank(keyColumns)) throw new RuntimeException("keyColumns required");
-        String[] keyColumnArray = optionsLocal.get().getString(KEY_KEY_COLUMNS).split(",");
 
-        for (String keyColumn:keyColumnArray) {
-            if(row.get(keyColumn)==null) return insert(row);
-        }
-
-        return  updateByParams(tableName,row,getKeyColumnMap(row,keyColumnArray));
-    }
 
     public static Map<String, Object> getKeyColumnMap(Map<String, Object> params,String[] keyColumnArray){
         Map<String, Object> keyColumnMap = new HashMap<>();

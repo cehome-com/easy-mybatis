@@ -154,7 +154,7 @@ public class DefaultInterceptor implements Interceptor {
 
 
             } else { //update
-                if(Objects.equals(statement.getId(), QuickMapperImpl.class.getName()+"._insert")){
+                if(Objects.equals(statement.getId(), CommonMapperImpl.class.getName()+"._insert")){
                     ObjectSupport.setFieldValue(statement, "keyProperties", new String[]{"id"});
                     ObjectSupport.setFieldValue(statement, "keyColumns",  new String[]{"id"});
 

@@ -149,9 +149,9 @@ public class EasyConfiguration extends Configuration {
             } else if (ms.getSqlCommandType().equals(SqlCommandType.SELECT)) {
                 changeResultMaps(ms);
             }
-        }else if(QuickMapperImpl.class.isAssignableFrom(mapperClass)){
+        }else if(CommonMapperImpl.class.isAssignableFrom(mapperClass)){
             if (ms.getSqlCommandType().equals(SqlCommandType.INSERT)) {
-                ObjectSupport.setFieldValue(ms, "keyGenerator", QuickJdbc3KeyGenerator.INSTANCE);
+                ObjectSupport.setFieldValue(ms, "keyGenerator", CommonMapperKeyGenerator.INSTANCE);
 
             }
         }
