@@ -59,7 +59,7 @@ public class EasyConfiguration extends Configuration {
 
     /**
      * in order to keep DefaultInterceptor run first ( Provider need getDialect()),  move it to last always.
-     * @see  org.apache.ibatis.plugin.InterceptorChain#pluginAll , return the last one
+     * @see  org.apache.ibatis.plugin.InterceptorChain#pluginAll , return the last one, then invoke the last one first.
      * @param interceptor
      */
     @Override
