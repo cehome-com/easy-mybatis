@@ -13,6 +13,8 @@ import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
 import org.apache.ibatis.executor.keygen.KeyGenerator;
 import org.apache.ibatis.executor.keygen.SelectKeyGenerator;
 import org.apache.ibatis.mapping.*;
+import org.apache.ibatis.plugin.Interceptor;
+import org.apache.ibatis.plugin.InterceptorChain;
 import org.apache.ibatis.session.Configuration;
 import org.springframework.beans.BeanUtils;
 import org.springframework.util.CollectionUtils;
@@ -20,6 +22,7 @@ import org.springframework.util.CollectionUtils;
 import javax.persistence.Column;
 import java.beans.PropertyDescriptor;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -53,6 +56,30 @@ public class EasyConfiguration extends Configuration {
         addInterceptor(new DefaultInterceptor(dialect));
 
     }
+
+    /**
+     * in order to keep DefaultInterceptor run first ( Provider need getDialect()),  move it to last always.
+     * @see  org.apache.ibatis.plugin.InterceptorChain#pluginAll , return the last one
+     * @param interceptor
+     */
+    @Override
+    public void addInterceptor(Interceptor interceptor) {
+        List<Interceptor> interceptors = ObjectSupport.getFieldValue(InterceptorChain.class, interceptorChain,"interceptors");
+        //move DefaultInterceptor to last,
+        DefaultInterceptor defaultInterceptor=null;
+        for(int i=interceptors.size()-1;i>=0;i--){
+            if(interceptors.get(i) instanceof DefaultInterceptor){
+                defaultInterceptor=(DefaultInterceptor)interceptors.get(i);
+                interceptors.remove(i);
+                break;
+            }
+        }
+        interceptors.add(interceptor);
+        if(defaultInterceptor!=null) interceptors.add(defaultInterceptor);
+
+
+    }
+
 
     public String getDialectName() {
         return dialectName;

@@ -78,7 +78,7 @@ public class DefaultInterceptor implements Interceptor {
              configuration = ConfigurationContext.get();
              if(configuration==null) {
                  setConfigurationFlag=true;
-                 ConfigurationContext.set(statement.getConfiguration());
+                 ConfigurationContext.set(statement.getConfiguration());//for get Dialect , get generations
              }
             // -- do with select
             if (statement.getSqlCommandType() == SqlCommandType.SELECT) {

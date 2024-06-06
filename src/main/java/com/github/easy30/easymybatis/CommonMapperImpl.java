@@ -68,7 +68,7 @@ public interface CommonMapperImpl extends CommonMapper {
     }
 
     @Override
-    default List<Map<String, Object>> pageParams(Page page, String columns, String table, Map params, String orderBy) {
+    default List<Map<String, Object>> pageByParams(Page page, String columns, String table, Map params, String orderBy) {
 
         try {
             PageContext.set(page);

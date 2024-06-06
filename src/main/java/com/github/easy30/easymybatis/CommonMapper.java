@@ -15,7 +15,7 @@ public interface CommonMapper {
 
     List<Map<String, Object>> pageBySql(Page page, String sql, Map params);
 
-    List<Map<String, Object>> pageParams(Page page, String columns, String table, Map params, String orderBy);
+    List<Map<String, Object>> pageByParams(Page page, String columns, String table, Map params, String orderBy);
 
     /**
      * insert
@@ -33,7 +33,6 @@ public interface CommonMapper {
      * @return
      */
     int insert(String table, Map<String, Object> params, String keyColumns);
-    Map<String, Object> get(String table, String key, Object value);
 
     int updateByParams(String table, @Param(PARAM_E) Map<String, Object> row, @Param(PARAM_P) Map<String, Object> params);
 

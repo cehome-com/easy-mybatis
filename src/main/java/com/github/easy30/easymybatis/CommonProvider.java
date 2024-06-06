@@ -46,9 +46,11 @@ public class CommonProvider {
 
     public static String getConditions(Map<String, Object> params) {
         StringBuilder sb=new StringBuilder();
-        params.forEach((k,v)->{
-            sb.append(k +"="+"#{" + k + "}");
-        });
+        if(params!=null) {
+            params.forEach((k, v) -> {
+                sb.append(k + "=" + "#{" + k + "}");
+            });
+        }
 
         return sb.toString();
     }

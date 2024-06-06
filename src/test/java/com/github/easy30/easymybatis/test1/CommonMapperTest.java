@@ -406,7 +406,7 @@ public class CommonMapperTest {
     @Test
     public void pageByParams()   {
         Page<User> page=new Page(2,3);
-        List<Map<String, Object>> list = commonMapper.pageParams(page, null, table, Collections.singletonMap("age", 24), null);
+        List<Map<String, Object>> list = commonMapper.pageByParams(page, null, table, Collections.singletonMap("age", 24), null);
         System.out.println(JSON.toJSONString(page,true));
         Assert.assertTrue(page.getData().size()>0);
 
