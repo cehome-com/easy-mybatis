@@ -1,5 +1,6 @@
 package com.github.easy30.easymybatis;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.annotations.*;
 import org.springframework.util.CollectionUtils;
@@ -148,20 +149,20 @@ public interface CommonMapperImpl extends CommonMapper {
         }
     }
     @Override
-    default Map<String, Object> getOneByKey(String columns, String table, String key, Object value) {
+    default JSONObject getOneByKey(String columns, String table, String key, Object value) {
         String sql = CommonProvider.getSelectSql(columns, table, key + "=#{" + key + "}", null);
         return getOneBySql(sql, Collections.singletonMap(key, value));
     }
     @Override
-    default Map<String, Object> getOneByParams(String columns, String table, Map params, String orderBy) {
+    default JSONObject getOneByParams(String columns, String table, Map params, String orderBy) {
         String sql = CommonProvider.getSelectSql(columns, table, CommonProvider.getConditions(params), orderBy);
         if (StringUtils.isNotBlank(orderBy)) sql += " order by " + orderBy;
         return getOneBySql(sql, params);
     }
     @Override
-    default Map<String, Object> getOneBySql(String sql, Map params) {
+    default JSONObject getOneBySql(String sql, Map params) {
         List<Map<String, Object>> list = listBySql(sql, params);
-        return CollectionUtils.isEmpty(list) ? null : list.get(0);
+        return CollectionUtils.isEmpty(list) || list.get(0)==null ? null : new JSONObject(list.get(0));
     }
     @Override
     default Object getValueBySql(String sql, Map params) {

@@ -1,5 +1,6 @@
 package com.github.easy30.easymybatis;
 
+import com.alibaba.fastjson.JSONObject;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -44,11 +45,11 @@ public interface CommonMapper {
 
     int saveByQuery(String table, Map<String, Object> params, String keyColumns);
 
-    Map<String, Object> getOneByKey(String columns, String table, String key, Object value);
+    JSONObject getOneByKey(String columns, String table, String key, Object value);
 
-    Map<String, Object> getOneByParams(String columns, String table, Map params, String orderBy);
+    JSONObject getOneByParams(String columns, String table, Map params, String orderBy);
 
-    Map<String, Object> getOneBySql(String sql, Map<String, Object> params);
+    JSONObject getOneBySql(String sql, Map<String, Object> params);
 
     Object getValueBySql(String sql, Map params);
 
