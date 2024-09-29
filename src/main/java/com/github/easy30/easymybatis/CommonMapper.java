@@ -35,16 +35,18 @@ public interface CommonMapper {
      */
     int insert(String table, Map<String, Object> params, String keyColumns);
 
-    int updateByParams(String table, @Param(PARAM_E) Map<String, Object> row, @Param(PARAM_P) Map<String, Object> params);
+    int updateByParams(@Param("table") String table, @Param(PARAM_E) Map<String, Object> row, @Param(PARAM_P) Map<String, Object> params);
 
-    int updateByKeys(String table, Map<String, Object> row, String keyColumns);
+    int update(String table, Map<String, Object> row, String keyColumns);
 
     int updateBySql(String sql, Map<String, Object> params);
 
-    int save(String table, Map<String, Object> params, String keyColumns);
+    Map<String, Object> save(String table, Map<String, Object> row, String keyColumns);
 
-    int saveByQuery(String table, Map<String, Object> params, String keyColumns);
+    int saveByQuery(String table, Map<String, Object> row, String keyColumns);
+    JSONObject getOne(String columns, String table, String key, Object value);
 
+    @Deprecated
     JSONObject getOneByKey(String columns, String table, String key, Object value);
 
     JSONObject getOneByParams(String columns, String table, Map params, String orderBy);
@@ -57,7 +59,7 @@ public interface CommonMapper {
 
     Object getValueByKey(String column, String table, String key, Object value);
 
-    Object deleteByKey(String table, String key, Object value);
+    Object delete(String table, String key, Object value);
 
     int deleteByParams(String table, Map params);
 

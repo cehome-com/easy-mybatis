@@ -1,6 +1,7 @@
 package com.github.easy30.easymybatis;
 
 import com.alibaba.fastjson.JSONObject;
+import com.github.easy30.easymybatis.utils.Utils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.annotations.*;
 import org.springframework.util.CollectionUtils;
@@ -33,7 +34,7 @@ public interface CommonMapperImpl extends CommonMapper {
     int doUpdate(Map params);
 
     @UpdateProvider(type = CommonProvider.class, method = "updateByParams")
-    int doUpdateByParams(String table, @Param(PARAM_E) Map<String, Object> row, @Param(PARAM_P) Map<String, Object> params);
+    int doUpdateByParams(@Param("table")String table, @Param(PARAM_E) Map<String, Object> row, @Param(PARAM_P) Map<String, Object> params);
 
     @Override
     default List<Map<String, Object>> listBySql(String sql, Map params) {
@@ -103,7 +104,7 @@ public interface CommonMapperImpl extends CommonMapper {
         return doUpdateByParams(table, row, params);
     }
     @Override
-    default int updateByKeys(String table, Map<String, Object> row, String keyColumns) {
+    default int update(String table, Map<String, Object> row, String keyColumns) {
         if (StringUtils.isBlank(keyColumns)) throw new RuntimeException("keyColumns required");
         return doUpdateByParams(table, row, CommonProvider.getKeyColumnMap(row, keyColumns.split(",")));
 
@@ -120,15 +121,18 @@ public interface CommonMapperImpl extends CommonMapper {
     }
 
     @Override
-    default int save(String table, Map<String, Object> row, String keyColumns) {
+    default Map<String, Object> save(String table, Map<String, Object> row, String keyColumns) {
         try {
             if(StringUtils.isBlank(keyColumns)) throw new RuntimeException("keyColumns required");
-
-            for (String keyColumn:keyColumns.split(",")) {
-                if(row.get(keyColumn)==null) return insert(table,row,keyColumns);
+            String[] keys=keyColumns.split(",");
+            for (String keyColumn:keys) {
+                if(row.get(keyColumn)==null) {
+                    int i=insert(table,row,keyColumns);
+                    return i==0?null: Utils.mapCopy(row,keys);
+                }
             }
-
-            return updateByKeys(table,row,keyColumns);
+            int i=update(table,row,keyColumns);
+            return i==0?null: Utils.mapCopy(row,keys);
         } finally {
             CommonProvider.removeOptions();
         }
@@ -141,7 +145,7 @@ public interface CommonMapperImpl extends CommonMapper {
             Map<String, Object> keyColumnMap = CommonProvider.getKeyColumnMap(params, keyColumns.split(","));
             Long count = ((Number) getValueByParams("count(*)", table, keyColumnMap, null)).longValue();
             if (count == 0) return insert(table, params);
-            else if (count == 1) return updateByKeys(table, params, keyColumns);
+            else if (count == 1) return update(table, params, keyColumns);
             else throw new RuntimeException("more than one record for " + keyColumns);
 
         } finally {
@@ -181,7 +185,7 @@ public interface CommonMapperImpl extends CommonMapper {
 
     }
     @Override
-    default Object deleteByKey(String table, String key, Object value) {
+    default Object delete(String table, String key, Object value) {
         return deleteByParams(table, Collections.singletonMap(key, value));
 
     }

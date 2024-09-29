@@ -1,7 +1,9 @@
 package com.github.easy30.easymybatis.utils;
 
 import java.text.MessageFormat;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 /**
@@ -76,5 +78,15 @@ public class Utils {
             }
         }
         return true;
+    }
+
+
+    public static Map mapCopy(Map source, Object... keys){
+        if(source==null) return null;
+        Map dest=new LinkedHashMap();
+        if(keys!=null) {
+            for (Object key : keys) dest.put(key, source.get(key));
+        }
+        return dest;
     }
 }

@@ -2,6 +2,7 @@ package com.github.easy30.easymybatis;
 
 import com.alibaba.fastjson.JSONObject;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.ibatis.annotations.Param;
 
 import java.text.MessageFormat;
 import java.util.HashMap;
@@ -110,7 +111,7 @@ public class CommonProvider {
     }
 
 
-    public String updateByParams(String table, Map<String, Object> row, Map<String, Object> params) {
+    public String updateByParams(@Param("table")String table, @Param(PARAM_E) Map<String, Object> row, @Param(PARAM_P) Map<String, Object> params) {
         //String tableName =  optionsLocal.get().getString("table");
        // String[] keyColumns= optionsLocal.get().getString(KEY_KEY_COLUMNS).split(",");
         StringBuilder sb = new StringBuilder("update " + table + " set ");
